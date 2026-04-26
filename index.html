@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1B3A6B">
 <title>InspeksiPro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -414,6 +415,9 @@
       <button class="btn-primary" onclick="showScreen('screen-new-session')" style="flex:1">
         ＋ Inspeksi Baru
       </button>
+      <button class="btn-secondary" onclick="showScreen('screen-rag')" style="flex:1">
+        🤖 Tanya Panduan
+      </button>
     </div>
 
     <span class="section-label">Sesi Sebelumnya</span>
@@ -559,8 +563,8 @@
 <div class="bottom-bar" id="bottombar-home" style="display:none"></div>
 
 <div class="bottom-bar" id="bottombar-session">
-  <button class="btn-secondary" onclick="exportJSON()" style="flex:1">⬇ Export JSON</button>
-  <button class="btn-primary"   onclick="generateReport()" style="flex:1.5">📄 Buat Laporan PDF</button>
+  <button class="btn-secondary" onclick="exportJSON()" style="flex:0.8">⬇ JSON</button>
+  <button class="btn-primary"   onclick="generateReport()" style="flex:2">📄 Buat & Kirim PDF</button>
 </div>
 
 <div class="bottom-bar" id="bottombar-checklist">
@@ -616,6 +620,313 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 6: RAG CHAT (Tanya Panduan)
+══════════════════════════════════════ -->
+<div class="screen" id="screen-rag" style="display:none">
+
+  <!-- Gemini status -->
+  <div class="card" style="margin-bottom:8px">
+    <div class="card-body" style="padding:12px 16px; display:flex; align-items:center; gap:10px">
+      <span style="font-size:20px">🤖</span>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--blue)">Google Gemini API</div>
+        <div id="rag-status" style="font-size:11px; color:var(--gray-400)">Memuat...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat messages -->
+  <div id="rag-messages" style="padding:0 14px; display:flex; flex-direction:column; gap:10px; margin-bottom:8px">
+    <!-- Pesan awal -->
+    <div style="background:var(--blue-light); border-radius:var(--radius); padding:14px 16px">
+      <div style="font-size:13px; font-weight:600; color:var(--blue); margin-bottom:4px">🤖 Asisten Panduan Rumalabs</div>
+      <div style="font-size:13px; color:var(--gray-900); line-height:1.5">
+        Halo! Saya siap membantu menjawab pertanyaan seputar inspeksi properti berdasarkan Panduan Rumalabs.<br><br>
+        Contoh pertanyaan:<br>
+        • "Bagaimana cara cek keramik kopong?"<br>
+        • "Retak di pojok dinding, perlu urgent?"<br>
+        • "Apa saja dokumen yang harus dicek saat serah terima?"
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggested questions -->
+  <div style="padding:0 14px; margin-bottom:8px">
+    <div style="font-size:11px; font-weight:600; color:var(--gray-400); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px">Pertanyaan Cepat</div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px">
+      <button class="kat-pill" onclick="askQuick('Bagaimana cara cek keramik kopong?')">Keramik kopong?</button>
+      <button class="kat-pill" onclick="askQuick('Retak di pojok dinding berbahaya tidak?')">Retak di pojok?</button>
+      <button class="kat-pill" onclick="askQuick('Dokumen apa yang wajib dicek saat serah terima?')">Dokumen wajib?</button>
+      <button class="kat-pill" onclick="askQuick('Bagaimana cara tes rendam kamar mandi?')">Tes rendam?</button>
+      <button class="kat-pill" onclick="askQuick('Plafon bocor, seberapa serius?')">Plafon bocor?</button>
+      <button class="kat-pill" onclick="askQuick('Cara cek instalasi listrik?')">Cek listrik?</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- RAG Bottom Bar -->
+<div class="bottom-bar" id="bottombar-rag" style="display:none">
+  <div style="flex:1; display:flex; gap:8px; align-items:center">
+    <textarea id="rag-input" placeholder="Ketik pertanyaan..."
+      style="flex:1; padding:10px 12px; border:1.5px solid var(--gray-200);
+             border-radius:var(--radius-sm); font-family:var(--font); font-size:13px;
+             resize:none; outline:none; height:42px; line-height:1.4;
+             transition:border-color 0.15s;"
+      onfocus="this.style.borderColor='var(--blue)'"
+      onblur="this.style.borderColor='var(--gray-200)'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendRAG()}"
+    ></textarea>
+    <button onclick="sendRAG()" id="rag-send-btn"
+      style="width:42px; height:42px; border:none; border-radius:var(--radius-sm);
+             background:var(--blue); color:white; font-size:18px; cursor:pointer;
+             display:flex; align-items:center; justify-content:center; flex-shrink:0">
+      ➤
+    </button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// RAG CHAT
+// ═══════════════════════════════════════════════════
+
+let ragHistory = [];
+let ragLoading = false;
+const GEMINI_KEY = 'AIzaSyCLgdXrsxy4QuLjn_9HrfACARK-OW-RzAE';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+
+// Panduan inspeksi sebagai konteks (dari PDF Rumalabs)
+const PANDUAN_KONTEKS = `
+PANDUAN CEK BANGUNAN RUMAH SEBELUM SERAH TERIMA - RUMALABS
+
+TUJUAN:
+Menjamin bahwa rumah yang diserahkan sesuai spesifikasi, layak huni, aman secara teknis, dan bebas dari cacat mayor.
+
+PRINSIP UTAMA:
+- Jangan tanda tangan BAST sebelum cek bangunan secara menyeluruh
+- Semua catatan defect harus tertulis
+- Jangan menerima janji "nanti diperbaiki" tanpa bukti tertulis
+- Pastikan air dan listrik telah ada saat serah terima
+
+DOKUMEN WAJIB DICEK:
+- IMB, Sertifikat tanah (SHM/SHGB), Site plan & gambar rumah
+- Spesifikasi teknis / brosur, Manual instalasi, Formulir BAST
+
+A. STRUKTUR & BANGUNAN:
+
+1. Dinding Retak (horizontal/diagonal):
+- Retak di pojok dinding (kiri kanan dan atas bawah) berkaitan dengan struktur — WAJIB konsultasi ahli
+- Perhatikan lebar dan kedalaman retak — semakin lebar dan dalam semakin serius
+- Retak rambut umumnya karena material dan metode finishing yang tidak baik
+- Retak rambut = estetis, tidak struktural, tapi perlu diperbaiki
+- Status: retak rambut biasa = Perlu Perbaikan, retak di pojok/lebar/dalam = URGENT
+
+2. Lantai Tidak Rata / Kopong:
+- Cek ketidakrataan dengan berjalan diseret tanpa alas kaki
+- Ketidakrataan sering terjadi di pojok ruangan, terutama material parquet
+- Keramik kopong = area kosong di bawah keramik akibat material pengisi tidak rata
+- Cek kopong dengan ketuk menggunakan palu karet — suara berbeda = kopong
+- Kopong juga bisa terjadi di keramik dinding dan kamar mandi
+- Risiko: keramik kopong bisa pecah karena injakan/beban
+- Status: keramik kopong = Perlu Perbaikan, luas/banyak = URGENT
+
+3. Plafon Miring / Bocor:
+- Plafon miring umumnya karena rangka miring — tidak berbahaya jika < 20 derajat
+- Plafon bocor terlihat dari bekas bocor/bercak warna berbeda
+- Status: miring < 20 derajat = Perlu Perbaikan, bocor aktif = URGENT
+
+B. RISIKO KEBOCORAN:
+
+1. Kondisi Dak Beton:
+- Cek waterproofing — harus merata dan menyeluruh
+- Permasalahan: tidak ada waterproofing, waterproofing tidak merata, retak tidak diperbaiki
+- Lubang buangan air harus terpasang dan di-waterproofing
+- Status: tanpa waterproofing = URGENT
+
+2. Kondisi Lantai Kamar Mandi:
+- Rumalabs selalu tes rendam untuk kamar mandi lantai atas
+- Cara tes rendam: sumbat lubang drainase, genangi air setinggi semata kaki, tunggu 1 jam
+- Kebocoran sering di titik temu pipa outlet dengan lantai
+- Status: ada kebocoran = URGENT
+
+C. KUALITAS PENGECATAN:
+- Masalah umum: cat belang/tidak merata
+- Rumalabs berusaha meminimalkan subjektivitas dalam penilaian cat
+- Cat belang = indikasi pengecatan ulang parsial atau perbedaan batch cat
+- Status: cat belang = Perlu Perbaikan
+
+D. INSTALASI LISTRIK:
+- Rumalabs menggunakan alat ukur grounding
+- Cek kerapihan instalasi kabel di area plafon (buka plafon kamar mandi)
+- Pastikan tidak ada sambungan kabel terbuka/tidak tersambung
+- Status: kabel terbuka = URGENT
+
+E. POMPA, BAK AIR & PERPIPAAN:
+- Pastikan jenis dan kapasitas pompa sesuai spesifikasi developer
+- Test pompa: harus bisa hidup dan mengalirkan air
+- Cek bak air/toren: tidak ada rembesan saat terisi
+- Cek perpipaan: tidak ada rembesan saat pompa hidup
+- Status: pompa tidak berfungsi = URGENT, rembesan kecil = Perlu Perbaikan
+`;
+
+const SYSTEM_PROMPT_GEMINI = `Kamu adalah asisten inspeksi bangunan dari Rumalabs Indonesia.
+Tugasmu membantu inspektor menjawab pertanyaan berdasarkan Panduan Cek Bangunan Rumalabs.
+
+PANDUAN RUMALABS:
+${PANDUAN_KONTEKS}
+
+ATURAN PENTING:
+1. Jawab HANYA berdasarkan panduan di atas
+2. Jawab dalam Bahasa Indonesia yang jelas dan ringkas
+3. Untuk pertanyaan judgment (urgent/tidak), berikan panduan dari dokumen
+4. Sertakan langkah praktis jika relevan
+5. Jawaban maksimal 3-4 kalimat — ringkas dan langsung ke poin
+6. Jika tidak ada di panduan, katakan "Tidak ada di panduan, gunakan judgment inspektor"`;
+
+function getRAGUrl() {
+  return ''; // tidak dipakai lagi
+}
+
+async function checkRAGServer() {
+  const statusEl = document.getElementById('rag-status');
+  statusEl.style.color = 'var(--green)';
+  statusEl.textContent = '✓ Gemini API aktif — siap digunakan tanpa server';
+}
+
+function addMessage(role, text, sources) {
+  const container = document.getElementById('rag-messages');
+  const isUser    = role === 'user';
+
+  const el = document.createElement('div');
+  el.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    align-items: ${isUser ? 'flex-end' : 'flex-start'};
+    gap: 4px;
+  `;
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `
+    max-width: 88%;
+    padding: 10px 13px;
+    border-radius: ${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+    background: ${isUser ? 'var(--blue)' : 'white'};
+    color: ${isUser ? 'white' : 'var(--gray-900)'};
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: var(--shadow);
+  `;
+  bubble.textContent = text;
+  el.appendChild(bubble);
+
+  if (sources && sources.length > 0) {
+    const srcEl = document.createElement('div');
+    srcEl.style.cssText = 'font-size:10px; color:var(--gray-400); padding: 0 4px';
+    srcEl.textContent = '📖 ' + sources.join(', ');
+    el.appendChild(srcEl);
+  }
+
+  container.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function addLoadingBubble() {
+  const container = document.getElementById('rag-messages');
+  const el = document.createElement('div');
+  el.id = 'rag-loading-bubble';
+  el.style.cssText = 'display:flex; align-items:flex-start;';
+  el.innerHTML = `
+    <div style="padding:10px 16px; background:white; border-radius:14px 14px 14px 4px;
+                box-shadow:var(--shadow); display:flex; gap:4px; align-items:center">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);
+                   animation:bounce 0.8s infinite 0s"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);
+                   animation:bounce 0.8s infinite 0.15s"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);
+                   animation:bounce 0.8s infinite 0.3s"></span>
+    </div>`;
+  container.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function removeLoadingBubble() {
+  const el = document.getElementById('rag-loading-bubble');
+  if (el) el.remove();
+}
+
+async function sendRAG(question) {
+  const input = document.getElementById('rag-input');
+  const q     = question || input.value.trim();
+  if (!q || ragLoading) return;
+
+  ragLoading = true;
+  input.value = '';
+  document.getElementById('rag-send-btn').style.opacity = '0.5';
+
+  addMessage('user', q);
+  addLoadingBubble();
+
+  ragHistory.push({ role: 'user', parts: [{ text: q }] });
+
+  try {
+    // Build contents dengan system prompt di awal
+    const contents = [
+      { role: 'user', parts: [{ text: SYSTEM_PROMPT_GEMINI + '\n\nSiap membantu.' }] },
+      { role: 'model', parts: [{ text: 'Siap! Saya akan membantu berdasarkan Panduan Rumalabs.' }] },
+      ...ragHistory.slice(-8),
+    ];
+
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature:     0.3,
+          maxOutputTokens: 300,
+          topP:            0.9,
+        },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const data   = await res.json();
+    const jawaban = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada jawaban.';
+
+    removeLoadingBubble();
+    addMessage('assistant', jawaban, ['Panduan Rumalabs']);
+
+    ragHistory.push({ role: 'model', parts: [{ text: jawaban }] });
+    if (ragHistory.length > 12) ragHistory = ragHistory.slice(-12);
+
+  } catch (e) {
+    removeLoadingBubble();
+    const msg = e.name === 'TimeoutError'
+      ? 'Timeout — coba lagi.'
+      : 'Error: ' + e.message;
+    addMessage('assistant', '⚠ ' + msg, []);
+  }
+
+  ragLoading = false;
+  document.getElementById('rag-send-btn').style.opacity = '1';
+}
+
+function askQuick(q) {
+  sendRAG(q);
+}
+
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+`;
+document.head.appendChild(style);
+</script>
 
 <script>
 // ═══════════════════════════════════════════════════
@@ -711,6 +1022,7 @@ function showScreen(id, push = true) {
     'screen-session':     ['Detail Sesi', ''],
     'screen-checklist':   ['Checklist', ''],
     'screen-item':        ['Detail Temuan', ''],
+    'screen-rag':         ['Tanya Panduan', 'Rumalabs RAG Assistant'],
   };
 
   const [title, sub] = titles[id] || ['InspeksiPro', ''];
@@ -722,6 +1034,7 @@ function showScreen(id, push = true) {
   if (id === 'screen-session')    { renderSession(); document.getElementById('bottombar-session').style.display = 'flex'; }
   if (id === 'screen-checklist')  { renderChecklist(); document.getElementById('bottombar-checklist').style.display = 'flex'; }
   if (id === 'screen-item')       { renderItem(); document.getElementById('bottombar-item').style.display = 'flex'; }
+  if (id === 'screen-rag')        { document.getElementById('bottombar-rag').style.display = 'flex'; checkRAGServer(); }
 
   window.scrollTo(0, 0);
 }
@@ -1088,23 +1401,30 @@ function handleFoto(input) {
   const file = input.files[0];
   if (!file) return;
 
+  showToast('⏳ Memproses foto...');
+
   const reader = new FileReader();
   reader.onload = e => {
-    // Compress image
     const img = document.createElement('img');
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX = 1200;
+      // Aggressive compression: max 800px, quality 65%
+      // Cukup tajam untuk laporan PDF A4 (foto ditampilkan ~6x4cm)
+      // Hasil: ~80-150KB per foto
+      const MAX = 800;
       let w = img.width, h = img.height;
-      if (w > MAX) { h = h * MAX / w; w = MAX; }
-      if (h > MAX) { w = w * MAX / h; h = MAX; }
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+      // Show file size info
+      const kb = Math.round(dataUrl.length * 0.75 / 1024);
       updateItem(i => { i.foto = dataUrl; });
       document.getElementById('foto-preview-zone').innerHTML =
         `<img src="${dataUrl}" style="width:100%;height:220px;object-fit:cover">`;
-      showToast('Foto disimpan ✓');
+      showToast(`Foto disimpan ✓ (~${kb}KB)`);
     };
     img.src = e.target.result;
   };
@@ -1144,19 +1464,20 @@ function exportJSON() {
   const s = getSession();
   if (!s) return;
 
-  // Build export format compatible dengan report_generator.py
+  showToast('⏳ Menyiapkan export...');
+
   let itemNo = 1;
   const items = [];
   s.sections.forEach(sec => {
     sec.items.forEach(item => {
       items.push({
-        no:              itemNo++,
-        section:         sec.name,
-        titik_inspeksi:  item.titik,
-        deskripsi:       item.deskripsi,
-        kategori:        item.kategori,
-        status:          item.status || 'perlu_perbaikan',
-        foto:            [],  // foto base64 tidak diexport ke JSON (terlalu besar)
+        no:             itemNo++,
+        section:        sec.name,
+        titik_inspeksi: item.titik,
+        deskripsi:      item.deskripsi,
+        kategori:       item.kategori,
+        status:         item.status || 'perlu_perbaikan',
+        foto_base64:    item.foto || null,  // include foto langsung
       });
     });
   });
@@ -1167,19 +1488,299 @@ function exportJSON() {
     dibuat: new Date().toISOString(),
   };
 
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `inspeksi_${s.properti.customer.replace(/\s+/g,'_')}_${s.properti.tanggal}.json`;
+  const json     = JSON.stringify(exportData, null, 2);
+  const blob     = new Blob([json], { type: 'application/json' });
+  const sizeMB   = (blob.size / 1024 / 1024).toFixed(1);
+  const url      = URL.createObjectURL(blob);
+  const a        = document.createElement('a');
+  a.href         = url;
+  a.download     = `inspeksi_${(s.properti.customer||'draft').replace(/\s+/g,'_')}_${s.properti.tanggal||'nodate'}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('JSON diexport ✓');
+  showToast(`JSON diexport ✓ (${sizeMB}MB)`);
 }
 
-function generateReport() {
-  showToast('Export JSON dulu, lalu jalankan report_generator.py 📄');
-  exportJSON();
+// ═══════════════════════════════════════════════════
+// PDF GENERATOR (jsPDF — runs fully on device)
+// ═══════════════════════════════════════════════════
+
+async function generateReport() {
+  const s = getSession();
+  if (!s) return;
+
+  const totalItems = s.sections.reduce((a, sec) => a + sec.items.length, 0);
+  if (totalItems === 0) { showToast('Belum ada temuan untuk dilaporkan'); return; }
+
+  showToast('⏳ Membuat PDF...');
+  await new Promise(r => setTimeout(r, 100)); // allow toast to render
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W = 210, H = 297;
+    const ML = 14, MR = 14, MT = 14;
+    const CW = W - ML - MR; // content width
+
+    // ── Colors ──
+    const BLUE    = [27, 58, 107];
+    const BLUE_L  = [232, 238, 247];
+    const GREEN   = [46, 125, 50];
+    const GREEN_L = [232, 245, 233];
+    const ORANGE  = [230, 81, 0];
+    const ORANGE_L= [255, 243, 224];
+    const RED     = [198, 40, 40];
+    const RED_L   = [255, 235, 238];
+    const GRAY_L  = [245, 246, 250];
+    const GRAY_M  = [156, 163, 175];
+    const DARK    = [17, 24, 39];
+    const WHITE   = [255, 255, 255];
+
+    let y = MT;
+    let pageNum = 1;
+
+    function setColor(rgb, type = 'fill') {
+      if (type === 'fill') doc.setFillColor(...rgb);
+      else doc.setDrawColor(...rgb);
+    }
+    function setFont(size, style = 'normal', color = DARK) {
+      doc.setFont('helvetica', style);
+      doc.setFontSize(size);
+      doc.setTextColor(...color);
+    }
+    function addFooter() {
+      doc.setDrawColor(...GRAY_M);
+      doc.line(ML, H - 10, W - MR, H - 10);
+      setFont(7, 'normal', GRAY_M);
+      doc.text('LAPORAN INSPEKSI BANGUNAN – CONFIDENTIAL', ML, H - 6);
+      doc.text(`Halaman ${pageNum}`, W - MR, H - 6, { align: 'right' });
+    }
+    function checkNewPage(needed = 20) {
+      if (y + needed > H - 16) {
+        addFooter();
+        doc.addPage();
+        pageNum++;
+        y = MT;
+        return true;
+      }
+      return false;
+    }
+
+    // ══════════════════════════════
+    // HEADER
+    // ══════════════════════════════
+    // Blue header bar
+    setColor(BLUE);
+    doc.roundedRect(ML, y, CW, 28, 3, 3, 'F');
+    setFont(16, 'bold', WHITE);
+    doc.text('LAPORAN INSPEKSI BANGUNAN', W / 2, y + 10, { align: 'center' });
+    setFont(9, 'normal', [200, 215, 235]);
+    doc.text('Properti Residential – Visual Inspection Report', W / 2, y + 18, { align: 'center' });
+    y += 33;
+
+    // Property info table
+    const p = s.properti;
+    const infoRows = [
+      ['Customer',       p.customer || '-',  'Tanggal Inspeksi', p.tanggal || '-'],
+      ['Lokasi',         p.lokasi || '-',    'Waktu Inspeksi',   p.waktu || '-'],
+      ['Metode',         p.metode || '-',    'Inspektor',        p.inspektor || '-'],
+    ];
+    const colW = [22, 64, 30, 64];
+    infoRows.forEach((row, ri) => {
+      const bg = ri % 2 === 0 ? BLUE_L : WHITE;
+      setColor(bg);
+      doc.rect(ML, y, CW, 7, 'F');
+      setFont(8, 'bold', BLUE);
+      doc.text(row[0], ML + 2, y + 5);
+      setFont(8, 'normal', DARK);
+      doc.text(': ' + row[1], ML + colW[0], y + 5);
+      setFont(8, 'bold', BLUE);
+      doc.text(row[2], ML + colW[0] + colW[1], y + 5);
+      setFont(8, 'normal', DARK);
+      doc.text(': ' + row[3], ML + colW[0] + colW[1] + colW[2], y + 5);
+      doc.setDrawColor(...GRAY_M);
+      doc.rect(ML, y, CW, 7, 'S');
+      y += 7;
+    });
+    y += 6;
+
+    // ══════════════════════════════
+    // SUMMARY
+    // ══════════════════════════════
+    const allItems = s.sections.flatMap(sec => sec.items);
+    const total  = allItems.length;
+    const nBaik  = allItems.filter(i => i.status === 'baik').length;
+    const nPerlu = allItems.filter(i => i.status === 'perlu_perbaikan').length;
+    const nUrgent= allItems.filter(i => i.status === 'urgent').length;
+
+    setFont(10, 'bold', BLUE);
+    doc.text('RINGKASAN TEMUAN', ML, y + 5);
+    y += 8;
+
+    const sumBoxes = [
+      { label: 'Total Titik', val: total,   bg: BLUE_L,   fg: BLUE   },
+      { label: 'Kondisi Baik',val: nBaik,   bg: GREEN_L,  fg: GREEN  },
+      { label: 'Perlu Perbaikan', val: nPerlu, bg: ORANGE_L, fg: ORANGE },
+      { label: 'Urgent',      val: nUrgent, bg: RED_L,    fg: RED    },
+    ];
+    const bw = CW / 4 - 2;
+    sumBoxes.forEach((b, i) => {
+      const bx = ML + i * (bw + 2.7);
+      setColor(b.bg);
+      doc.roundedRect(bx, y, bw, 16, 2, 2, 'F');
+      setFont(18, 'bold', b.fg);
+      doc.text(String(b.val), bx + bw / 2, y + 9, { align: 'center' });
+      setFont(7, 'normal', b.fg);
+      doc.text(b.label, bx + bw / 2, y + 14, { align: 'center' });
+    });
+    y += 22;
+
+    // Divider
+    doc.setDrawColor(...GRAY_M);
+    doc.line(ML, y, W - MR, y);
+    y += 5;
+
+    // ══════════════════════════════
+    // ITEMS
+    // ══════════════════════════════
+    let currentSection = '';
+    let itemNo = 1;
+
+    for (const sec of s.sections) {
+      // Section header
+      if (sec.name !== currentSection) {
+        checkNewPage(12);
+        currentSection = sec.name;
+        setColor(BLUE);
+        doc.rect(ML, y, CW, 8, 'F');
+        setFont(9, 'bold', WHITE);
+        doc.text(sec.name.toUpperCase(), ML + 4, y + 5.5);
+        y += 10;
+      }
+
+      for (const item of sec.items) {
+        // Estimate row height
+        const hasFoto = !!item.foto;
+        const fotoH   = hasFoto ? 36 : 0;
+        const descLines = doc.splitTextToSize(item.deskripsi || '-', 110);
+        const textH = Math.max(24, 6 + descLines.length * 4.5 + 8);
+        const rowH  = Math.max(textH, fotoH + 8);
+
+        checkNewPage(rowH + 4);
+
+        // Row background
+        const rowBg = itemNo % 2 === 0 ? GRAY_L : WHITE;
+        setColor(rowBg);
+        doc.rect(ML, y, CW, rowH, 'F');
+        doc.setDrawColor(...GRAY_M);
+        doc.rect(ML, y, CW, rowH, 'S');
+
+        // Item number
+        setColor(BLUE_L);
+        doc.roundedRect(ML + 1, y + 1, 8, 8, 1.5, 1.5, 'F');
+        setFont(7, 'bold', BLUE);
+        doc.text(String(itemNo), ML + 5, y + 6.5, { align: 'center' });
+
+        // Titik inspeksi
+        setFont(8, 'bold', DARK);
+        doc.text(item.titik || '-', ML + 11, y + 6);
+
+        // Status badge
+        const statusMap = {
+          baik:            { bg: GREEN,  label: '✓ BAIK' },
+          perlu_perbaikan: { bg: ORANGE, label: '⚠ PERLU PERBAIKAN' },
+          urgent:          { bg: RED,    label: '✕ URGENT' },
+        };
+        const st = statusMap[item.status] || statusMap.perlu_perbaikan;
+        setFont(6, 'bold', WHITE);
+        setColor(st.bg);
+        const stW = doc.getTextWidth(st.label) + 4;
+        doc.roundedRect(W - MR - stW - 1, y + 1, stW, 6, 1, 1, 'F');
+        doc.text(st.label, W - MR - stW / 2 - 1, y + 5.3, { align: 'center' });
+
+        // Description
+        setFont(8, 'normal', DARK);
+        const dLines = doc.splitTextToSize(item.deskripsi || '-', hasFoto ? 105 : 175);
+        dLines.forEach((line, li) => {
+          doc.text(line, ML + 11, y + 13 + li * 4.5);
+        });
+
+        // Foto
+        if (hasFoto) {
+          try {
+            const imgX = W - MR - 38;
+            const imgY = y + 2;
+            doc.addImage(item.foto, 'JPEG', imgX, imgY, 36, 32);
+            doc.setDrawColor(...GRAY_M);
+            doc.rect(imgX, imgY, 36, 32, 'S');
+          } catch (e) { /* skip bad image */ }
+        }
+
+        y += rowH + 1;
+        itemNo++;
+      }
+      y += 3;
+    }
+
+    // ══════════════════════════════
+    // SIGNATURE PAGE
+    // ══════════════════════════════
+    checkNewPage(60);
+    y += 10;
+    setFont(12, 'bold', BLUE);
+    doc.text('PERNYATAAN INSPEKTOR', W / 2, y, { align: 'center' });
+    y += 8;
+    setFont(8, 'normal', DARK);
+    const disclaimer = 'Laporan ini dibuat berdasarkan hasil inspeksi visual yang dilakukan pada tanggal tersebut di atas. Temuan yang tercantum merupakan kondisi properti pada saat inspeksi dilakukan.';
+    const dLines = doc.splitTextToSize(disclaimer, CW);
+    dLines.forEach(l => { doc.text(l, W / 2, y, { align: 'center' }); y += 5; });
+    y += 20;
+
+    // Signature boxes
+    const sigW = 70;
+    const sig1X = ML + 10;
+    const sig2X = W - MR - sigW - 10;
+    [sig1X, sig2X].forEach(sx => {
+      doc.setDrawColor(...DARK);
+      doc.line(sx, y, sx + sigW, y);
+    });
+    setFont(8, 'normal', DARK);
+    doc.text('( ' + (p.customer || '_______________') + ' )', sig1X + sigW / 2, y + 5, { align: 'center' });
+    doc.text('( ' + (p.inspektor || '_______________') + ' )', sig2X + sigW / 2, y + 5, { align: 'center' });
+    setFont(8, 'bold', GRAY_M);
+    doc.text('Pemesan', sig1X + sigW / 2, y + 10, { align: 'center' });
+    doc.text('Inspektor', sig2X + sigW / 2, y + 10, { align: 'center' });
+
+    addFooter();
+
+    // ══════════════════════════════
+    // SAVE / SHARE
+    // ══════════════════════════════
+    const filename = `Laporan_${(p.customer || 'Inspeksi').replace(/\s+/g,'_')}_${p.tanggal || 'draft'}.pdf`;
+    const pdfBlob  = doc.output('blob');
+
+    // Try Web Share API first (mobile native share → WhatsApp dll)
+    if (navigator.share && navigator.canShare) {
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        showToast('PDF siap dikirim ✓');
+        return;
+      }
+    }
+
+    // Fallback: download
+    const url = URL.createObjectURL(pdfBlob);
+    const a   = document.createElement('a');
+    a.href    = url;
+    a.download= filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('PDF didownload ✓');
+
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal buat PDF: ' + err.message);
+  }
 }
 
 // ═══════════════════════════════════════════════════
