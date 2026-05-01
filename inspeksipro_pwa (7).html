@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1B3A6B">
+<title>InspeksiPro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --blue:       #1B3A6B;
+    --blue-mid:   #2A5298;
+    --blue-light: #E8EEF7;
+    --green:      #2E7D32;
+    --green-light:#E8F5E9;
+    --orange:     #E65100;
+    --orange-light:#FFF3E0;
+    --red:        #C62828;
+    --red-light:  #FFEBEE;
+    --gray-100:   #F5F6FA;
+    --gray-200:   #EAECF0;
+    --gray-400:   #9CA3AF;
+    --gray-600:   #4B5563;
+    --gray-900:   #111827;
+    --white:      #FFFFFF;
+    --radius:     14px;
+    --radius-sm:  8px;
+    --shadow:     0 2px 12px rgba(27,58,107,0.10);
+    --shadow-lg:  0 8px 32px rgba(27,58,107,0.16);
+    --font:       'DM Sans', sans-serif;
+    --mono:       'DM Mono', monospace;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font);
+    background: var(--gray-100);
+    color: var(--gray-900);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--blue);
+    padding: 12px 16px 10px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  .topbar-back {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: none; color: white; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .topbar-title { flex: 1; }
+  .topbar-title h1 { font-size: 15px; font-weight: 600; color: white; }
+  .topbar-title p  { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 1px; }
+  .topbar-action {
+    background: rgba(255,255,255,0.15); border: none; border-radius: 8px;
+    color: white; font-family: var(--font); font-size: 12px; font-weight: 600;
+    padding: 7px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .topbar-action:active { background: rgba(255,255,255,0.25); }
+
+  /* ── MAIN CONTENT ── */
+  .main { padding: 72px 0 100px; min-height: 100dvh; }
+
+  /* ── SCREEN MANAGEMENT ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow); margin: 12px 14px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-header h2 { font-size: 14px; font-weight: 600; color: var(--blue); }
+  .card-body { padding: 14px 16px; }
+
+  /* ── HOME SCREEN ── */
+  .home-hero {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-mid) 100%);
+    margin: 12px 14px; border-radius: var(--radius);
+    padding: 20px; color: white;
+    box-shadow: var(--shadow-lg);
+  }
+  .home-hero h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .home-hero p  { font-size: 12px; opacity: 0.75; }
+  .home-hero .hero-stats {
+    display: flex; gap: 16px; margin-top: 16px;
+  }
+  .hero-stat { text-align: center; flex: 1; }
+  .hero-stat .num { font-size: 24px; font-weight: 700; font-family: var(--mono); }
+  .hero-stat .lbl { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+
+  .btn-primary {
+    width: 100%; padding: 15px; border: none; border-radius: var(--radius);
+    background: var(--blue); color: white;
+    font-family: var(--font); font-size: 15px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: var(--shadow);
+    transition: all 0.15s;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-secondary {
+    width: 100%; padding: 13px; border: 1.5px solid var(--blue); border-radius: var(--radius);
+    background: white; color: var(--blue);
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.15s;
+  }
+  .btn-secondary:active { background: var(--blue-light); }
+
+  /* ── SESSION LIST ── */
+  .session-item {
+    padding: 14px 16px; border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: background 0.1s;
+  }
+  .session-item:last-child { border-bottom: none; }
+  .session-item:active { background: var(--gray-100); }
+  .session-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: var(--blue-light); color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .session-info { flex: 1; min-width: 0; }
+  .session-info h3 { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .session-info p  { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+  .session-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .badge-draft    { background: var(--orange-light); color: var(--orange); }
+  .badge-selesai  { background: var(--green-light);  color: var(--green);  }
+
+  /* ── FORM NEW SESSION ── */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px;
+    color: var(--gray-900); background: white; outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--blue); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── SECTION LIST (dalam inspeksi) ── */
+  .section-item {
+    padding: 14px 16px; border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: background 0.1s;
+  }
+  .section-item:last-child { border-bottom: none; }
+  .section-item:active { background: var(--gray-100); }
+  .section-progress {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--blue-light); display: flex; align-items: center;
+    justify-content: center; font-size: 11px; font-weight: 700;
+    color: var(--blue); flex-shrink: 0; font-family: var(--mono);
+  }
+  .section-progress.done { background: var(--green-light); color: var(--green); }
+  .section-info { flex: 1; }
+  .section-info h3 { font-size: 13px; font-weight: 600; }
+  .section-info p  { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  .add-section-btn {
+    margin: 6px 14px 0; padding: 12px;
+    border: 1.5px dashed var(--gray-400); border-radius: var(--radius);
+    background: transparent; width: calc(100% - 28px);
+    font-family: var(--font); font-size: 13px; color: var(--gray-600);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .add-section-btn:active { background: var(--gray-200); }
+
+  /* ── CHECKLIST SCREEN ── */
+  .checklist-item {
+    padding: 12px 16px; border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: flex-start; gap: 12px;
+    cursor: pointer; transition: background 0.1s;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item:active { background: var(--gray-100); }
+  .check-box {
+    width: 22px; height: 22px; border-radius: 6px;
+    border: 2px solid var(--gray-400); flex-shrink: 0; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .check-box.checked-ok     { background: var(--green);  border-color: var(--green);  color: white; }
+  .check-box.checked-warn   { background: var(--orange); border-color: var(--orange); color: white; }
+  .check-box.checked-urgent { background: var(--red);    border-color: var(--red);    color: white; }
+  .check-content { flex: 1; min-width: 0; }
+  .check-title { font-size: 13px; font-weight: 500; }
+  .check-meta  { font-size: 11px; color: var(--gray-400); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+  .check-photo-thumb {
+    width: 44px; height: 44px; border-radius: 6px;
+    object-fit: cover; flex-shrink: 0;
+  }
+  .check-photo-placeholder {
+    width: 44px; height: 44px; border-radius: 6px;
+    background: var(--gray-200); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .add-item-btn {
+    margin: 6px 14px 0; padding: 12px;
+    border: 1.5px dashed var(--gray-400); border-radius: var(--radius);
+    background: transparent; width: calc(100% - 28px);
+    font-family: var(--font); font-size: 13px; color: var(--gray-600);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .add-item-btn:active { background: var(--gray-200); }
+
+  /* ── ITEM DETAIL / FOTO MODE ── */
+  .foto-zone {
+    margin: 12px 14px; border-radius: var(--radius);
+    overflow: hidden; background: var(--gray-900);
+    min-height: 220px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .foto-zone img { width: 100%; height: 220px; object-fit: cover; display: block; }
+  .foto-zone-empty {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; color: var(--gray-400); padding: 40px;
+  }
+  .foto-zone-empty .icon { font-size: 42px; }
+  .foto-zone-empty p { font-size: 13px; text-align: center; }
+
+  .foto-actions { display: flex; gap: 10px; margin: 0 14px; }
+  .foto-btn {
+    flex: 1; padding: 13px; border: none; border-radius: var(--radius-sm);
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .foto-btn-camera { background: var(--blue); color: white; }
+  .foto-btn-gallery { background: var(--gray-200); color: var(--gray-900); }
+  .foto-btn:active { opacity: 0.8; transform: scale(0.97); }
+
+  /* ── STATUS PILLS ── */
+  .status-group { display: flex; gap: 8px; margin: 12px 14px 0; }
+  .status-pill {
+    flex: 1; padding: 10px 6px; border: 2px solid var(--gray-200);
+    border-radius: var(--radius-sm); background: white;
+    font-family: var(--font); font-size: 11px; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all 0.15s;
+    line-height: 1.3;
+  }
+  .status-pill .pill-icon { font-size: 16px; display: block; margin-bottom: 3px; }
+  .status-pill.active-ok     { background: var(--green-light);  border-color: var(--green);  color: var(--green);  }
+  .status-pill.active-warn   { background: var(--orange-light); border-color: var(--orange); color: var(--orange); }
+  .status-pill.active-urgent { background: var(--red-light);    border-color: var(--red);    color: var(--red);    }
+  .status-pill:active { transform: scale(0.96); }
+
+  /* ── KATEGORI PILLS ── */
+  .kategori-scroll {
+    display: flex; gap: 8px; overflow-x: auto; padding: 4px 14px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .kategori-scroll::-webkit-scrollbar { display: none; }
+  .kat-pill {
+    white-space: nowrap; padding: 7px 12px; border-radius: 20px;
+    border: 1.5px solid var(--gray-200); background: white;
+    font-family: var(--font); font-size: 11px; font-weight: 500; cursor: pointer;
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .kat-pill.active { background: var(--blue); border-color: var(--blue); color: white; }
+  .kat-pill:active { transform: scale(0.95); }
+
+  /* ── TEXTAREA ── */
+  .desc-area {
+    width: 100%; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm);
+    padding: 12px 14px; font-family: var(--font); font-size: 13px;
+    line-height: 1.5; resize: none; outline: none; min-height: 90px;
+    transition: border-color 0.15s;
+  }
+  .desc-area:focus { border-color: var(--blue); }
+
+  .template-hint {
+    background: var(--blue-light); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-top: 8px; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .template-hint p { font-size: 12px; color: var(--blue); line-height: 1.4; flex: 1; }
+  .template-hint .use-btn { font-size: 11px; font-weight: 600; color: var(--blue); white-space: nowrap; flex-shrink: 0; padding-top: 1px; }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: white; border-top: 1px solid var(--gray-200);
+    padding: 12px 14px calc(12px + var(--safe-bottom));
+    display: flex; gap: 10px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+  }
+
+  /* ── MODAL / BOTTOM SHEET ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 200; display: none; align-items: flex-end;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    width: 100%; background: white; border-radius: 20px 20px 0 0;
+    padding: 16px 16px calc(16px + var(--safe-bottom));
+    max-height: 85dvh; overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle {
+    width: 36px; height: 4px; background: var(--gray-200);
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+  .sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--blue); }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--gray-400);
+    padding: 14px 16px 6px; display: block;
+  }
+
+  /* ── UPLOAD PROGRESS ── */
+  .upload-bar {
+    background: var(--blue-light); border-radius: var(--radius-sm);
+    padding: 10px 14px; margin: 0 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--blue); font-weight: 500;
+  }
+  .upload-bar .spinner {
+    width: 16px; height: 16px; border: 2px solid var(--blue-light);
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin 0.8s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--gray-900); color: white; border-radius: 20px;
+    padding: 10px 18px; font-size: 13px; font-weight: 500; z-index: 300;
+    opacity: 0; transition: opacity 0.2s; white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    padding: 48px 24px; text-align: center; color: var(--gray-400);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.5; }
+
+  /* ── HIDDEN FILE INPUT ── */
+  #foto-input { display: none; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar" id="topbar">
+  <button class="topbar-back" id="btn-back" onclick="goBack()" style="display:none">‹</button>
+  <div class="topbar-title">
+    <h1 id="topbar-title">InspeksiPro</h1>
+    <p id="topbar-sub">Field Inspection App</p>
+  </div>
+  <button class="topbar-action" id="topbar-action" style="display:none"></button>
+</div>
+
+<div class="main">
+
+  <!-- ══════════════════════════════════════
+       SCREEN 1: HOME
+  ══════════════════════════════════════ -->
+  <div class="screen active" id="screen-home">
+
+    <div class="home-hero">
+      <h2>🏠 Selamat Datang</h2>
+      <p>Sistem Inspeksi Properti Digital</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num" id="stat-total">0</div>
+          <div class="lbl">Total Sesi</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" id="stat-draft">0</div>
+          <div class="lbl">Draft</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" id="stat-done">0</div>
+          <div class="lbl">Selesai</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin: 0 14px 12px; display:flex; gap:10px;">
+      <button class="btn-primary" onclick="showScreen('screen-new-session')" style="flex:1">
+        ＋ Inspeksi Baru
+      </button>
+    </div>
+
+    <span class="section-label">Sesi Sebelumnya</span>
+    <div class="card" style="margin-top:0">
+      <div id="session-list">
+        <div class="empty-state">
+          <div class="icon">📋</div>
+          <p>Belum ada sesi inspeksi.<br>Tap "Inspeksi Baru" untuk memulai.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 2: NEW SESSION FORM
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-new-session">
+    <div class="card">
+      <div class="card-header"><h2>📝 Informasi Properti</h2></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Nama Customer</label>
+          <input class="form-input" id="f-customer" placeholder="Contoh: Pak Ricky" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lokasi Properti</label>
+          <input class="form-input" id="f-lokasi" placeholder="Contoh: Hiera Welton B22 No.10" type="text">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tanggal</label>
+            <input class="form-input" id="f-tanggal" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Waktu Mulai</label>
+            <input class="form-input" id="f-waktu" type="time">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Inspektor</label>
+          <input class="form-input" id="f-inspektor" placeholder="Nama inspektor" type="text" value="Faizal">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Metode</label>
+          <select class="form-input" id="f-metode">
+            <option>Visual Checking</option>
+            <option>Visual + Thermal</option>
+            <option>Visual + Moisture Meter</option>
+            <option>Inspeksi Lanjutan</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin: 0 14px;">
+      <button class="btn-primary" onclick="createSession()">Mulai Inspeksi →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 3: SESSION DETAIL (Section List)
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-session">
+    <div class="card" style="margin-bottom:8px">
+      <div id="session-summary-card"></div>
+    </div>
+
+    <span class="section-label">Area / Ruangan</span>
+    <div class="card" style="margin-top:0">
+      <div id="section-list"></div>
+    </div>
+    <button class="add-section-btn" onclick="showAddSection()">＋ Tambah Area / Lantai</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 4: CHECKLIST (per Section)
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-checklist">
+    <div class="card" style="margin-bottom:8px">
+      <div id="checklist-list"></div>
+    </div>
+    <button class="add-item-btn" onclick="showAddItem()">＋ Tambah Temuan</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 5: ITEM DETAIL (Foto + Status)
+  ══════════════════════════════════════ -->
+  <div class="screen" id="screen-item">
+    <!-- Foto Zone -->
+    <div class="foto-zone" id="foto-preview-zone">
+      <div class="foto-zone-empty">
+        <div class="icon">📷</div>
+        <p>Belum ada foto.<br>Tap tombol di bawah untuk ambil foto.</p>
+      </div>
+    </div>
+
+    <div class="foto-actions">
+      <button class="foto-btn foto-btn-camera" onclick="triggerCamera()">📷 Ambil Foto</button>
+      <button class="foto-btn foto-btn-gallery" onclick="triggerGallery()">🖼 Galeri</button>
+    </div>
+    <input type="file" id="foto-input-camera" accept="image/*" capture="environment" onchange="handleFoto(this)">
+    <input type="file" id="foto-input-gallery" accept="image/*" onchange="handleFoto(this)">
+
+    <!-- Status -->
+    <span class="section-label" style="padding-top:16px">Status Temuan</span>
+    <div class="status-group">
+      <button class="status-pill" id="pill-ok"     onclick="setStatus('baik')">
+        <span class="pill-icon">✓</span>Baik
+      </button>
+      <button class="status-pill" id="pill-warn"   onclick="setStatus('perlu_perbaikan')">
+        <span class="pill-icon">⚠</span>Perlu Perbaikan
+      </button>
+      <button class="status-pill" id="pill-urgent" onclick="setStatus('urgent')">
+        <span class="pill-icon">✕</span>Urgent
+      </button>
+    </div>
+
+    <!-- Kategori -->
+    <span class="section-label" style="padding-top:14px">Kategori Temuan</span>
+    <div class="kategori-scroll" id="kategori-scroll"></div>
+
+    <!-- Deskripsi -->
+    <div style="margin: 12px 14px 0">
+      <label class="form-label">Deskripsi Temuan</label>
+      <textarea class="desc-area" id="item-desc" placeholder="Tulis deskripsi temuan..." rows="3"
+        oninput="syncDesc()"></textarea>
+      <div class="template-hint" id="template-hint" onclick="useTemplate()" style="display:none">
+        <p id="template-hint-text"></p>
+        <span class="use-btn">Pakai ↗</span>
+      </div>
+    </div>
+
+    <!-- Titik Inspeksi (readonly info) -->
+    <div style="margin: 12px 14px 0">
+      <label class="form-label">Titik Inspeksi</label>
+      <input class="form-input" id="item-titik" type="text" placeholder="Misal: Dinding Selatan">
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ── BOTTOM BARS ── -->
+<div class="bottom-bar" id="bottombar-home" style="display:none"></div>
+
+<div class="bottom-bar" id="bottombar-session">
+  <button class="btn-primary" onclick="exportJSON()" style="flex:1">⬇ Export JSON</button>
+</div>
+
+<div class="bottom-bar" id="bottombar-checklist">
+  <button class="btn-primary" onclick="goBack()" style="flex:1">← Kembali</button>
+</div>
+
+<div class="bottom-bar" id="bottombar-item">
+  <button class="btn-secondary" onclick="deleteItem()"  style="flex:0.6; border-color:#ddd; color:#999">🗑</button>
+  <button class="btn-primary"   onclick="saveItem()"    style="flex:1.8">Simpan Temuan ✓</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODALS / BOTTOM SHEETS
+══════════════════════════════════════ -->
+
+<!-- Add Section Sheet -->
+<div class="overlay" id="overlay-section" onclick="closeOverlay('overlay-section')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Tambah Area / Lantai</div>
+    <div class="form-group">
+      <label class="form-label">Nama Area</label>
+      <input class="form-input" id="new-section-name" placeholder="Contoh: Lantai Satu, Rooftop, Basement...">
+    </div>
+    <span class="section-label" style="padding:0 0 8px">Template Cepat</span>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px">
+      <button class="kat-pill" onclick="setNewSection('Lantai Satu')">Lantai Satu</button>
+      <button class="kat-pill" onclick="setNewSection('Lantai Dua')">Lantai Dua</button>
+      <button class="kat-pill" onclick="setNewSection('Lantai Tiga')">Lantai Tiga</button>
+      <button class="kat-pill" onclick="setNewSection('Basement')">Basement</button>
+      <button class="kat-pill" onclick="setNewSection('Rooftop / Dak Atas')">Rooftop / Dak Atas</button>
+      <button class="kat-pill" onclick="setNewSection('Eksterior')">Eksterior</button>
+      <button class="kat-pill" onclick="setNewSection('Garasi')">Garasi</button>
+    </div>
+    <button class="btn-primary" onclick="addSection()">Tambah Area</button>
+  </div>
+</div>
+
+<!-- Add Item Sheet -->
+<div class="overlay" id="overlay-item" onclick="closeOverlay('overlay-item')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Tambah Titik Inspeksi</div>
+    <div class="form-group">
+      <label class="form-label">Nama Titik</label>
+      <input class="form-input" id="new-item-name" placeholder="Contoh: Dinding Utara, Lantai Kamar...">
+    </div>
+    <span class="section-label" style="padding:0 0 8px">Template Cepat</span>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px" id="item-templates"></div>
+    <button class="btn-primary" onclick="addItem()">Tambah & Buka →</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 6: RAG CHAT (Tanya Panduan)
+══════════════════════════════════════ -->
+<div class="screen" id="screen-rag">
+
+  <!-- Gemini status -->
+  <div class="card" style="margin-bottom:8px">
+    <div class="card-body" style="padding:12px 16px; display:flex; align-items:center; gap:10px">
+      <span style="font-size:20px">🤖</span>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--blue)">Google Gemini API</div>
+        <div id="rag-status" style="font-size:11px; color:var(--gray-400)">Memuat...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat messages -->
+  <div id="rag-messages" style="padding:0 14px; display:flex; flex-direction:column; gap:10px; margin-bottom:8px">
+    <!-- Pesan awal -->
+    <div style="background:var(--blue-light); border-radius:var(--radius); padding:14px 16px">
+      <div style="font-size:13px; font-weight:600; color:var(--blue); margin-bottom:4px">🤖 Asisten Panduan Rumalabs</div>
+      <div style="font-size:13px; color:var(--gray-900); line-height:1.5">
+        Halo! Saya siap membantu menjawab pertanyaan seputar inspeksi properti berdasarkan Panduan Rumalabs.<br><br>
+        Contoh pertanyaan:<br>
+        • "Bagaimana cara cek keramik kopong?"<br>
+        • "Retak di pojok dinding, perlu urgent?"<br>
+        • "Apa saja dokumen yang harus dicek saat serah terima?"
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggested questions -->
+  <div style="padding:0 14px; margin-bottom:8px">
+    <div style="font-size:11px; font-weight:600; color:var(--gray-400); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px">Pertanyaan Cepat</div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px">
+      <button class="kat-pill" onclick="askQuick('Bagaimana cara cek keramik kopong?')">Keramik kopong?</button>
+      <button class="kat-pill" onclick="askQuick('Retak di pojok dinding berbahaya tidak?')">Retak di pojok?</button>
+      <button class="kat-pill" onclick="askQuick('Dokumen apa yang wajib dicek saat serah terima?')">Dokumen wajib?</button>
+      <button class="kat-pill" onclick="askQuick('Bagaimana cara tes rendam kamar mandi?')">Tes rendam?</button>
+      <button class="kat-pill" onclick="askQuick('Plafon bocor, seberapa serius?')">Plafon bocor?</button>
+      <button class="kat-pill" onclick="askQuick('Cara cek instalasi listrik?')">Cek listrik?</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- RAG Bottom Bar -->
+<div class="bottom-bar" id="bottombar-rag" style="display:none">
+  <div style="flex:1; display:flex; gap:8px; align-items:center">
+    <textarea id="rag-input" placeholder="Ketik pertanyaan..."
+      style="flex:1; padding:10px 12px; border:1.5px solid var(--gray-200);
+             border-radius:var(--radius-sm); font-family:var(--font); font-size:13px;
+             resize:none; outline:none; height:42px; line-height:1.4;
+             transition:border-color 0.15s;"
+      onfocus="this.style.borderColor='var(--blue)'"
+      onblur="this.style.borderColor='var(--gray-200)'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendRAG()}"
+    ></textarea>
+    <button onclick="sendRAG()" id="rag-send-btn"
+      style="width:42px; height:42px; border:none; border-radius:var(--radius-sm);
+             background:var(--blue); color:white; font-size:18px; cursor:pointer;
+             display:flex; align-items:center; justify-content:center; flex-shrink:0">
+      ➤
+    </button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// RAG CHAT
+// ═══════════════════════════════════════════════════
+
+let ragHistory = [];
+let ragLoading = false;
+const GEMINI_KEY = 'AIzaSyBmYjgI_LndaAMkELcxNFn3b21btem0pZk';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+
+// Panduan inspeksi sebagai konteks (dari PDF Rumalabs)
+const PANDUAN_KONTEKS = `
+PANDUAN CEK BANGUNAN RUMAH SEBELUM SERAH TERIMA - RUMALABS
+
+TUJUAN:
+Menjamin bahwa rumah yang diserahkan sesuai spesifikasi, layak huni, aman secara teknis, dan bebas dari cacat mayor.
+
+PRINSIP UTAMA:
+- Jangan tanda tangan BAST sebelum cek bangunan secara menyeluruh
+- Semua catatan defect harus tertulis
+- Jangan menerima janji "nanti diperbaiki" tanpa bukti tertulis
+- Pastikan air dan listrik telah ada saat serah terima
+
+DOKUMEN WAJIB DICEK:
+- IMB, Sertifikat tanah (SHM/SHGB), Site plan & gambar rumah
+- Spesifikasi teknis / brosur, Manual instalasi, Formulir BAST
+
+A. STRUKTUR & BANGUNAN:
+
+1. Dinding Retak (horizontal/diagonal):
+- Retak di pojok dinding (kiri kanan dan atas bawah) berkaitan dengan struktur — WAJIB konsultasi ahli
+- Perhatikan lebar dan kedalaman retak — semakin lebar dan dalam semakin serius
+- Retak rambut umumnya karena material dan metode finishing yang tidak baik
+- Retak rambut = estetis, tidak struktural, tapi perlu diperbaiki
+- Status: retak rambut biasa = Perlu Perbaikan, retak di pojok/lebar/dalam = URGENT
+
+2. Lantai Tidak Rata / Kopong:
+- Cek ketidakrataan dengan berjalan diseret tanpa alas kaki
+- Ketidakrataan sering terjadi di pojok ruangan, terutama material parquet
+- Keramik kopong = area kosong di bawah keramik akibat material pengisi tidak rata
+- Cek kopong dengan ketuk menggunakan palu karet — suara berbeda = kopong
+- Kopong juga bisa terjadi di keramik dinding dan kamar mandi
+- Risiko: keramik kopong bisa pecah karena injakan/beban
+- Status: keramik kopong = Perlu Perbaikan, luas/banyak = URGENT
+
+3. Plafon Miring / Bocor:
+- Plafon miring umumnya karena rangka miring — tidak berbahaya jika < 20 derajat
+- Plafon bocor terlihat dari bekas bocor/bercak warna berbeda
+- Status: miring < 20 derajat = Perlu Perbaikan, bocor aktif = URGENT
+
+B. RISIKO KEBOCORAN:
+
+1. Kondisi Dak Beton:
+- Cek waterproofing — harus merata dan menyeluruh
+- Permasalahan: tidak ada waterproofing, waterproofing tidak merata, retak tidak diperbaiki
+- Lubang buangan air harus terpasang dan di-waterproofing
+- Status: tanpa waterproofing = URGENT
+
+2. Kondisi Lantai Kamar Mandi:
+- Rumalabs selalu tes rendam untuk kamar mandi lantai atas
+- Cara tes rendam: sumbat lubang drainase, genangi air setinggi semata kaki, tunggu 1 jam
+- Kebocoran sering di titik temu pipa outlet dengan lantai
+- Status: ada kebocoran = URGENT
+
+C. KUALITAS PENGECATAN:
+- Masalah umum: cat belang/tidak merata
+- Rumalabs berusaha meminimalkan subjektivitas dalam penilaian cat
+- Cat belang = indikasi pengecatan ulang parsial atau perbedaan batch cat
+- Status: cat belang = Perlu Perbaikan
+
+D. INSTALASI LISTRIK:
+- Rumalabs menggunakan alat ukur grounding
+- Cek kerapihan instalasi kabel di area plafon (buka plafon kamar mandi)
+- Pastikan tidak ada sambungan kabel terbuka/tidak tersambung
+- Status: kabel terbuka = URGENT
+
+E. POMPA, BAK AIR & PERPIPAAN:
+- Pastikan jenis dan kapasitas pompa sesuai spesifikasi developer
+- Test pompa: harus bisa hidup dan mengalirkan air
+- Cek bak air/toren: tidak ada rembesan saat terisi
+- Cek perpipaan: tidak ada rembesan saat pompa hidup
+- Status: pompa tidak berfungsi = URGENT, rembesan kecil = Perlu Perbaikan
+`;
+
+const SYSTEM_PROMPT_GEMINI = `Kamu adalah asisten inspeksi bangunan dari Rumalabs Indonesia.
+Tugasmu membantu inspektor menjawab pertanyaan berdasarkan Panduan Cek Bangunan Rumalabs.
+
+PANDUAN RUMALABS:
+${PANDUAN_KONTEKS}
+
+ATURAN PENTING:
+1. Jawab HANYA berdasarkan panduan di atas
+2. Jawab dalam Bahasa Indonesia yang jelas dan ringkas
+3. Untuk pertanyaan judgment (urgent/tidak), berikan panduan dari dokumen
+4. Sertakan langkah praktis jika relevan
+5. Jawaban maksimal 3-4 kalimat — ringkas dan langsung ke poin
+6. Jika tidak ada di panduan, katakan "Tidak ada di panduan, gunakan judgment inspektor"`;
+
+function getRAGUrl() {
+  return ''; // tidak dipakai lagi
+}
+
+async function checkRAGServer() {
+  const statusEl = document.getElementById('rag-status');
+  statusEl.style.color = 'var(--green)';
+  statusEl.textContent = '✓ Gemini API aktif — siap digunakan tanpa server';
+}
+
+function addMessage(role, text, sources) {
+  const container = document.getElementById('rag-messages');
+  const isUser    = role === 'user';
+
+  const el = document.createElement('div');
+  el.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    align-items: ${isUser ? 'flex-end' : 'flex-start'};
+    gap: 4px;
+  `;
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `
+    max-width: 88%;
+    padding: 10px 13px;
+    border-radius: ${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+    background: ${isUser ? 'var(--blue)' : 'white'};
+    color: ${isUser ? 'white' : 'var(--gray-900)'};
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: var(--shadow);
+  `;
+  bubble.textContent = text;
+  el.appendChild(bubble);
+
+  if (sources && sources.length > 0) {
+    const srcEl = document.createElement('div');
+    srcEl.style.cssText = 'font-size:10px; color:var(--gray-400); padding: 0 4px';
+    srcEl.textContent = '📖 ' + sources.join(', ');
+    el.appendChild(srcEl);
+  }
+
+  container.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function addLoadingBubble() {
+  const container = document.getElementById('rag-messages');
+  const el = document.createElement('div');
+  el.id = 'rag-loading-bubble';
+  el.style.cssText = 'display:flex; align-items:flex-start;';
+  el.innerHTML = `
+    <div style="padding:10px 16px; background:white; border-radius:14px 14px 14px 4px;
+                box-shadow:var(--shadow); display:flex; gap:4px; align-items:center">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);
+                   animation:bounce 0.8s infinite 0s"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);
+                   animation:bounce 0.8s infinite 0.15s"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--blue);
+                   animation:bounce 0.8s infinite 0.3s"></span>
+    </div>`;
+  container.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function removeLoadingBubble() {
+  const el = document.getElementById('rag-loading-bubble');
+  if (el) el.remove();
+}
+
+async function sendRAG(question) {
+  const input = document.getElementById('rag-input');
+  const q     = question || input.value.trim();
+  if (!q || ragLoading) return;
+
+  ragLoading = true;
+  input.value = '';
+  document.getElementById('rag-send-btn').style.opacity = '0.5';
+
+  addMessage('user', q);
+  addLoadingBubble();
+
+  ragHistory.push({ role: 'user', parts: [{ text: q }] });
+
+  try {
+    // Build contents dengan system prompt di awal
+    const contents = [
+      { role: 'user', parts: [{ text: SYSTEM_PROMPT_GEMINI + '\n\nSiap membantu.' }] },
+      { role: 'model', parts: [{ text: 'Siap! Saya akan membantu berdasarkan Panduan Rumalabs.' }] },
+      ...ragHistory.slice(-8),
+    ];
+
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature:     0.3,
+          maxOutputTokens: 300,
+          topP:            0.9,
+        },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const data   = await res.json();
+    console.log('Gemini response:', JSON.stringify(data));
+    
+    let jawaban = 'Tidak ada jawaban.';
+    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      jawaban = data.candidates[0].content.parts[0].text;
+    } else if (data?.error) {
+      jawaban = '⚠ Error API: ' + (data.error.message || JSON.stringify(data.error));
+    } else if (data?.promptFeedback) {
+      jawaban = '⚠ Pertanyaan diblok oleh filter keamanan. Coba pertanyaan lain.';
+    }
+
+    removeLoadingBubble();
+    addMessage('assistant', jawaban, ['Panduan Rumalabs']);
+
+    ragHistory.push({ role: 'model', parts: [{ text: jawaban }] });
+    if (ragHistory.length > 12) ragHistory = ragHistory.slice(-12);
+
+  } catch (e) {
+    removeLoadingBubble();
+    const msg = e.name === 'TimeoutError'
+      ? 'Timeout — coba lagi.'
+      : 'Error: ' + e.message;
+    addMessage('assistant', '⚠ ' + msg, []);
+  }
+
+  ragLoading = false;
+  document.getElementById('rag-send-btn').style.opacity = '1';
+}
+
+function askQuick(q) {
+  sendRAG(q);
+}
+
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+`;
+document.head.appendChild(style);
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════════════
+
+const STORAGE_KEY = 'inspeksipro_v1';
+
+const KATEGORI_LIST = [
+  { id: 'cat_tidak_rata',          label: '🖌 Cat Tidak Rata' },
+  { id: 'cat_belang',              label: '🎨 Cat Belang' },
+  { id: 'cat_tipis',               label: '💧 Cat Tipis' },
+  { id: 'cat_bergelombang',        label: '🌊 Dinding Bergelombang' },
+  { id: 'bekas_cat',               label: '🧹 Bekas Cat' },
+  { id: 'nat_tambah',              label: '➕ Penambahan Nat' },
+  { id: 'nat_rapih',               label: '✂ Perapihan Nat' },
+  { id: 'retak_rambut',            label: '🔍 Retak Rambut' },
+  { id: 'keramik_kosong',          label: '🧱 Keramik Kosong' },
+  { id: 'keramik_level',           label: '📐 Level Keramik' },
+  { id: 'kemiringan_lantai_ok',    label: '✓ Kemiringan OK' },
+  { id: 'kemiringan_lantai_kurang',label: '⚠ Kemiringan Kurang' },
+  { id: 'grounding_ok',            label: '⚡ Grounding OK' },
+  { id: 'waterproofing',           label: '🛡 Waterproofing' },
+  { id: 'lainnya',                 label: '📝 Lainnya' },
+];
+
+const TEMPLATES = {
+  cat_tidak_rata:           'Perapihan cat pada {titik} karena tidak rata.',
+  cat_belang:               'Perapihan cat pada {titik} karena belang.',
+  cat_tipis:                'Penambahan cat pada {titik} karena masih tipis.',
+  cat_bergelombang:         'Penghalusan dinding {titik} karena bergelombang.',
+  bekas_cat:                'Pembersihan bekas cat pada {titik}.',
+  nat_tambah:               'Penambahan nat pada {titik}.',
+  nat_rapih:                'Perapihan nat pada {titik}.',
+  retak_rambut:             'Perbaikan retak rambut di {titik}.',
+  keramik_kosong:           'Perbaikan keramik kosong di {titik}.',
+  keramik_level:            'Perbaikan keramik karena perbedaan level di {titik}.',
+  kemiringan_lantai_ok:     'Kemiringan level lantai sudah memenuhi standar (min 10 mm).',
+  kemiringan_lantai_kurang: 'Kemiringan level lantai belum memenuhi standar (min 10 mm).',
+  grounding_ok:             'Soket listrik sudah tergrounding dengan baik (indikator warna hijau/aman).',
+  waterproofing:            'Perbaikan/penambahan waterproofing pada {titik}.',
+  lainnya:                  '',
+};
+
+const ITEM_TEMPLATE_SUGGESTIONS = [
+  'Fasad Depan','Fasad Samping','Carport','Teras',
+  'Ruang Tamu','Ruang Keluarga','Ruang Makan','Dapur',
+  'Kamar Tidur Utama','Kamar Tidur Anak','Kamar Tidur ART',
+  'Kamar Mandi Dalam','Kamar Mandi Luar','Kamar Mandi ART',
+  'Tangga','Selasar','Balkon','Gudang',
+  'Dak Atas','Talang Air','Instalasi Listrik','Instalasi Air',
+];
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { sessions: [] }; }
+  catch { return { sessions: [] }; }
+}
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+
+let currentSessionId  = null;
+let currentSectionIdx = null;
+let currentItemIdx    = null;
+let screenStack       = ['screen-home'];
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+
+function showScreen(id, push = true) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (push && screenStack[screenStack.length - 1] !== id) screenStack.push(id);
+
+  const backBtn = document.getElementById('btn-back');
+  const actionBtn = document.getElementById('topbar-action');
+  actionBtn.style.display = 'none';
+
+  document.querySelectorAll('.bottom-bar').forEach(b => b.style.display = 'none');
+
+  const titles = {
+    'screen-home':        ['InspeksiPro', 'Field Inspection App'],
+    'screen-new-session': ['Inspeksi Baru', 'Isi data properti'],
+    'screen-session':     ['Detail Sesi', ''],
+    'screen-checklist':   ['Checklist', ''],
+    'screen-item':        ['Detail Temuan', ''],
+    'screen-rag':         ['Tanya Panduan', 'Rumalabs RAG Assistant'],
+  };
+
+  const [title, sub] = titles[id] || ['InspeksiPro', ''];
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-sub').textContent   = sub;
+  backBtn.style.display = screenStack.length > 1 ? 'flex' : 'none';
+
+  if (id === 'screen-home')       { renderHome(); }
+  if (id === 'screen-session')    { renderSession(); document.getElementById('bottombar-session').style.display = 'flex'; }
+  if (id === 'screen-checklist')  { renderChecklist(); document.getElementById('bottombar-checklist').style.display = 'flex'; }
+  if (id === 'screen-item')       { renderItem(); document.getElementById('bottombar-item').style.display = 'flex'; }
+  if (id === 'screen-rag') {
+    document.getElementById('bottombar-rag').style.display = 'flex';
+    setTimeout(() => checkRAGServer(), 100);
+  }
+
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  if (screenStack.length > 1) {
+    screenStack.pop();
+    showScreen(screenStack[screenStack.length - 1], false);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════
+
+function renderHome() {
+  const data = loadData();
+  const sessions = data.sessions;
+  const draft = sessions.filter(s => s.status === 'draft').length;
+  const done  = sessions.filter(s => s.status === 'selesai').length;
+
+  document.getElementById('stat-total').textContent = sessions.length;
+  document.getElementById('stat-draft').textContent = draft;
+  document.getElementById('stat-done').textContent  = done;
+
+  const list = document.getElementById('session-list');
+  if (!sessions.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Belum ada sesi inspeksi.<br>Tap "Inspeksi Baru" untuk memulai.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = sessions.slice().reverse().map(s => {
+    const totalItems = s.sections.reduce((a, sec) => a + sec.items.length, 0);
+    const doneItems  = s.sections.reduce((a, sec) => a + sec.items.filter(i => i.status).length, 0);
+    return `
+    <div class="session-item" onclick="openSession('${s.id}')">
+      <div class="session-icon">🏠</div>
+      <div class="session-info">
+        <h3>${s.properti.customer} – ${s.properti.lokasi}</h3>
+        <p>${s.properti.tanggal} · ${doneItems}/${totalItems} item · ${s.sections.length} area</p>
+      </div>
+      <span class="session-badge badge-${s.status}">${s.status === 'draft' ? 'Draft' : 'Selesai'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// SESSION
+// ═══════════════════════════════════════════════════
+
+function createSession() {
+  const customer  = document.getElementById('f-customer').value.trim();
+  const lokasi    = document.getElementById('f-lokasi').value.trim();
+  const tanggal   = document.getElementById('f-tanggal').value;
+  const waktu     = document.getElementById('f-waktu').value;
+  const inspektor = document.getElementById('f-inspektor').value.trim();
+  const metode    = document.getElementById('f-metode').value;
+
+  if (!customer || !lokasi) { showToast('Isi nama customer dan lokasi dulu'); return; }
+
+  const data = loadData();
+  const session = {
+    id: uid(),
+    status: 'draft',
+    properti: { customer, lokasi, tanggal, waktu, inspektor, metode },
+    sections: [],
+    dibuat: new Date().toISOString(),
+  };
+  data.sessions.push(session);
+  saveData(data);
+
+  currentSessionId = session.id;
+  showScreen('screen-session');
+}
+
+function openSession(id) {
+  currentSessionId = id;
+  showScreen('screen-session');
+}
+
+function getSession() {
+  const data = loadData();
+  return data.sessions.find(s => s.id === currentSessionId);
+}
+
+function updateSession(fn) {
+  const data = loadData();
+  const idx  = data.sessions.findIndex(s => s.id === currentSessionId);
+  if (idx < 0) return;
+  fn(data.sessions[idx]);
+  saveData(data);
+}
+
+function renderSession() {
+  const s = getSession();
+  if (!s) return;
+
+  document.getElementById('topbar-sub').textContent = `${s.properti.customer} · ${s.properti.lokasi}`;
+
+  const totalItems = s.sections.reduce((a, sec) => a + sec.items.length, 0);
+  const doneItems  = s.sections.reduce((a, sec) => a + sec.items.filter(i => i.status).length, 0);
+  const urgent     = s.sections.reduce((a, sec) => a + sec.items.filter(i => i.status === 'urgent').length, 0);
+  const perlu      = s.sections.reduce((a, sec) => a + sec.items.filter(i => i.status === 'perlu_perbaikan').length, 0);
+
+  document.getElementById('session-summary-card').innerHTML = `
+    <div style="padding:14px 16px; display:flex; gap:20px; align-items:center">
+      <div style="flex:1">
+        <div style="font-size:12px; color:var(--gray-400); margin-bottom:2px">${s.properti.tanggal} · ${s.properti.metode}</div>
+        <div style="font-size:13px; font-weight:600">${doneItems} / ${totalItems} item diisi</div>
+      </div>
+      <div style="display:flex; gap:10px; font-size:11px; font-weight:600">
+        ${urgent ? `<span style="color:var(--red)">✕ ${urgent} Urgent</span>` : ''}
+        ${perlu  ? `<span style="color:var(--orange)">⚠ ${perlu} Perbaikan</span>` : ''}
+      </div>
+    </div>`;
+
+  const list = document.getElementById('section-list');
+  if (!s.sections.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">🏗</div><p>Belum ada area.<br>Tambah area inspeksi di bawah.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = s.sections.map((sec, idx) => {
+    const total = sec.items.length;
+    const done  = sec.items.filter(i => i.status).length;
+    const pct   = total ? Math.round(done / total * 100) : 0;
+    const isDone = pct === 100 && total > 0;
+    return `
+    <div class="section-item" onclick="openSection(${idx})">
+      <div class="section-progress ${isDone ? 'done' : ''}">${isDone ? '✓' : pct + '%'}</div>
+      <div class="section-info">
+        <h3>${sec.name}</h3>
+        <p>${done}/${total} item · ${sec.items.filter(i=>i.status==='urgent').length} urgent · ${sec.items.filter(i=>i.status==='perlu_perbaikan').length} perbaikan</p>
+      </div>
+      <span style="color:var(--gray-400);font-size:18px">›</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// SECTION
+// ═══════════════════════════════════════════════════
+
+function showAddSection() {
+  document.getElementById('new-section-name').value = '';
+  openOverlay('overlay-section');
+}
+
+function setNewSection(name) {
+  document.getElementById('new-section-name').value = name;
+}
+
+function addSection() {
+  const name = document.getElementById('new-section-name').value.trim();
+  if (!name) { showToast('Isi nama area dulu'); return; }
+
+  updateSession(s => {
+    s.sections.push({ id: uid(), name, items: [] });
+  });
+  closeOverlay('overlay-section');
+  renderSession();
+  showToast('Area ditambahkan ✓');
+}
+
+function openSection(idx) {
+  currentSectionIdx = idx;
+  const s = getSession();
+  document.getElementById('topbar-title').textContent = s.sections[idx].name;
+  showScreen('screen-checklist');
+}
+
+// ═══════════════════════════════════════════════════
+// CHECKLIST
+// ═══════════════════════════════════════════════════
+
+function renderChecklist() {
+  const s   = getSession();
+  const sec = s.sections[currentSectionIdx];
+  if (!sec) return;
+
+  document.getElementById('topbar-title').textContent = sec.name;
+
+  const list = document.getElementById('checklist-list');
+  if (!sec.items.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Belum ada titik inspeksi.<br>Tap "Tambah Temuan" di bawah.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = sec.items.map((item, idx) => {
+    const statusClass = item.status === 'baik' ? 'checked-ok' :
+                        item.status === 'perlu_perbaikan' ? 'checked-warn' :
+                        item.status === 'urgent' ? 'checked-urgent' : '';
+    const statusIcon = item.status === 'baik' ? '✓' :
+                       item.status === 'perlu_perbaikan' ? '⚠' :
+                       item.status === 'urgent' ? '✕' : '';
+
+    const fotoEl = item.foto ?
+      `<img class="check-photo-thumb" src="${item.foto}" alt="foto">` :
+      `<div class="check-photo-placeholder">📷</div>`;
+
+    const kat = KATEGORI_LIST.find(k => k.id === item.kategori);
+
+    return `
+    <div class="checklist-item" onclick="openItem(${idx})">
+      <div class="check-box ${statusClass}">${statusIcon}</div>
+      <div class="check-content">
+        <div class="check-title">${item.titik || 'Titik Inspeksi'}</div>
+        <div class="check-meta">
+          ${kat ? `<span>${kat.label}</span>` : ''}
+          ${item.deskripsi ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${item.deskripsi}</span>` : ''}
+        </div>
+      </div>
+      ${fotoEl}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// ITEM TEMPLATES SHEET
+// ═══════════════════════════════════════════════════
+
+function showAddItem() {
+  document.getElementById('new-item-name').value = '';
+  const s   = getSession();
+  const sec = s.sections[currentSectionIdx];
+  const existing = sec.items.map(i => i.titik);
+  const avail = ITEM_TEMPLATE_SUGGESTIONS.filter(t => !existing.includes(t));
+
+  document.getElementById('item-templates').innerHTML =
+    avail.slice(0, 12).map(t =>
+      `<button class="kat-pill" onclick="setNewItem('${t}')">${t}</button>`
+    ).join('');
+
+  openOverlay('overlay-item');
+}
+
+function setNewItem(name) {
+  document.getElementById('new-item-name').value = name;
+}
+
+function addItem() {
+  const titik = document.getElementById('new-item-name').value.trim();
+  if (!titik) { showToast('Isi nama titik inspeksi'); return; }
+
+  updateSession(s => {
+    const sec = s.sections[currentSectionIdx];
+    sec.items.push({
+      id: uid(), titik,
+      status: null, kategori: null,
+      deskripsi: '', foto: null,
+    });
+    currentItemIdx = sec.items.length - 1;
+  });
+
+  closeOverlay('overlay-item');
+  showScreen('screen-item');
+}
+
+function openItem(idx) {
+  currentItemIdx = idx;
+  showScreen('screen-item');
+}
+
+// ═══════════════════════════════════════════════════
+// ITEM DETAIL
+// ═══════════════════════════════════════════════════
+
+function getItem() {
+  const s = getSession();
+  return s.sections[currentSectionIdx].items[currentItemIdx];
+}
+
+function updateItem(fn) {
+  updateSession(s => {
+    fn(s.sections[currentSectionIdx].items[currentItemIdx]);
+  });
+}
+
+function renderItem() {
+  const item = getItem();
+  document.getElementById('topbar-title').textContent = item.titik || 'Detail Temuan';
+  document.getElementById('item-titik').value    = item.titik    || '';
+  document.getElementById('item-desc').value     = item.deskripsi || '';
+
+  // Foto
+  const zone = document.getElementById('foto-preview-zone');
+  if (item.foto) {
+    zone.innerHTML = `<img src="${item.foto}" style="width:100%;height:220px;object-fit:cover">`;
+  } else {
+    zone.innerHTML = `<div class="foto-zone-empty"><div class="icon">📷</div><p>Belum ada foto.<br>Tap tombol di bawah untuk ambil foto.</p></div>`;
+  }
+
+  // Status pills
+  ['ok','warn','urgent'].forEach(k => {
+    document.getElementById('pill-'+k).className = 'status-pill';
+  });
+  if (item.status === 'baik')            document.getElementById('pill-ok').className    = 'status-pill active-ok';
+  if (item.status === 'perlu_perbaikan') document.getElementById('pill-warn').className   = 'status-pill active-warn';
+  if (item.status === 'urgent')          document.getElementById('pill-urgent').className = 'status-pill active-urgent';
+
+  // Kategori scroll
+  const ks = document.getElementById('kategori-scroll');
+  ks.innerHTML = KATEGORI_LIST.map(k =>
+    `<button class="kat-pill ${item.kategori === k.id ? 'active' : ''}"
+      onclick="setKategori('${k.id}')">${k.label}</button>`
+  ).join('');
+
+  // Template hint
+  showTemplateHint(item.kategori, item.titik);
+}
+
+function setStatus(val) {
+  updateItem(item => { item.status = val; });
+  renderItem();
+}
+
+function setKategori(val) {
+  updateItem(item => { item.kategori = val; });
+  const item = getItem();
+  // Auto-fill template jika deskripsi masih kosong
+  if (!item.deskripsi && TEMPLATES[val]) {
+    const tmpl = TEMPLATES[val].replace('{titik}', item.titik || 'area ini');
+    updateItem(i => { i.deskripsi = tmpl; });
+    document.getElementById('item-desc').value = tmpl;
+  }
+  showTemplateHint(val, item.titik);
+  // Re-render pills
+  document.querySelectorAll('.kat-pill').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function showTemplateHint(kategori, titik) {
+  const hint = document.getElementById('template-hint');
+  if (!kategori || !TEMPLATES[kategori] || kategori === 'lainnya') {
+    hint.style.display = 'none'; return;
+  }
+  const tmpl = TEMPLATES[kategori].replace('{titik}', titik || 'area ini');
+  document.getElementById('template-hint-text').textContent = tmpl;
+  hint.style.display = 'flex';
+}
+
+function useTemplate() {
+  const item = getItem();
+  if (!item.kategori) return;
+  const tmpl = TEMPLATES[item.kategori].replace('{titik}', item.titik || 'area ini');
+  document.getElementById('item-desc').value = tmpl;
+  updateItem(i => { i.deskripsi = tmpl; });
+  showToast('Template diterapkan ✓');
+}
+
+function syncDesc() {
+  const val = document.getElementById('item-desc').value;
+  updateItem(i => { i.deskripsi = val; });
+}
+
+// ═══════════════════════════════════════════════════
+// FOTO
+// ═══════════════════════════════════════════════════
+
+function triggerCamera()  { document.getElementById('foto-input-camera').click(); }
+function triggerGallery() { document.getElementById('foto-input-gallery').click(); }
+
+function handleFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  showToast('⏳ Memproses foto...');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.createElement('img');
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Aggressive compression: max 800px, quality 65%
+      // Cukup tajam untuk laporan PDF A4 (foto ditampilkan ~6x4cm)
+      // Hasil: ~80-150KB per foto
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+      // Show file size info
+      const kb = Math.round(dataUrl.length * 0.75 / 1024);
+      updateItem(i => { i.foto = dataUrl; });
+      document.getElementById('foto-preview-zone').innerHTML =
+        `<img src="${dataUrl}" style="width:100%;height:220px;object-fit:cover">`;
+      showToast(`Foto disimpan ✓ (~${kb}KB)`);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE / DELETE ITEM
+// ═══════════════════════════════════════════════════
+
+function saveItem() {
+  const titik = document.getElementById('item-titik').value.trim();
+  updateItem(i => {
+    i.titik     = titik || i.titik;
+    i.deskripsi = document.getElementById('item-desc').value;
+  });
+  showToast('Temuan disimpan ✓');
+  goBack();
+  renderChecklist();
+}
+
+function deleteItem() {
+  if (!confirm('Hapus temuan ini?')) return;
+  updateSession(s => {
+    s.sections[currentSectionIdx].items.splice(currentItemIdx, 1);
+  });
+  goBack();
+  renderChecklist();
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════
+
+function exportJSON() {
+  const s = getSession();
+  if (!s) return;
+
+  showToast('⏳ Menyiapkan export...');
+
+  let itemNo = 1;
+  const items = [];
+  s.sections.forEach(sec => {
+    sec.items.forEach(item => {
+      items.push({
+        no:             itemNo++,
+        section:        sec.name,
+        titik_inspeksi: item.titik,
+        deskripsi:      item.deskripsi,
+        kategori:       item.kategori,
+        status:         item.status || 'perlu_perbaikan',
+        foto_base64:    item.foto || null,  // include foto langsung
+      });
+    });
+  });
+
+  const exportData = {
+    properti: s.properti,
+    items,
+    dibuat: new Date().toISOString(),
+  };
+
+  const json     = JSON.stringify(exportData, null, 2);
+  const blob     = new Blob([json], { type: 'application/json' });
+  const sizeMB   = (blob.size / 1024 / 1024).toFixed(1);
+  const url      = URL.createObjectURL(blob);
+  const a        = document.createElement('a');
+  a.href         = url;
+  a.download     = `inspeksi_${(s.properti.customer||'draft').replace(/\s+/g,'_')}_${s.properti.tanggal||'nodate'}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`JSON diexport ✓ (${sizeMB}MB)`);
+}
+
+// ═══════════════════════════════════════════════════
+// PDF GENERATOR (jsPDF — runs fully on device)
+// ═══════════════════════════════════════════════════
+
+async function generateReport() {
+  const s = getSession();
+  if (!s) return;
+
+  const totalItems = s.sections.reduce((a, sec) => a + sec.items.length, 0);
+  if (totalItems === 0) { showToast('Belum ada temuan untuk dilaporkan'); return; }
+
+  showToast('⏳ Membuat PDF...');
+  await new Promise(r => setTimeout(r, 100)); // allow toast to render
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W = 210, H = 297;
+    const ML = 14, MR = 14, MT = 14;
+    const CW = W - ML - MR; // content width
+
+    // ── Colors ──
+    const BLUE    = [27, 58, 107];
+    const BLUE_L  = [232, 238, 247];
+    const GREEN   = [46, 125, 50];
+    const GREEN_L = [232, 245, 233];
+    const ORANGE  = [230, 81, 0];
+    const ORANGE_L= [255, 243, 224];
+    const RED     = [198, 40, 40];
+    const RED_L   = [255, 235, 238];
+    const GRAY_L  = [245, 246, 250];
+    const GRAY_M  = [156, 163, 175];
+    const DARK    = [17, 24, 39];
+    const WHITE   = [255, 255, 255];
+
+    let y = MT;
+    let pageNum = 1;
+
+    function setColor(rgb, type = 'fill') {
+      if (type === 'fill') doc.setFillColor(...rgb);
+      else doc.setDrawColor(...rgb);
+    }
+    function setFont(size, style = 'normal', color = DARK) {
+      doc.setFont('helvetica', style);
+      doc.setFontSize(size);
+      doc.setTextColor(...color);
+    }
+    function addFooter() {
+      doc.setDrawColor(...GRAY_M);
+      doc.line(ML, H - 10, W - MR, H - 10);
+      setFont(7, 'normal', GRAY_M);
+      doc.text('LAPORAN INSPEKSI BANGUNAN – CONFIDENTIAL', ML, H - 6);
+      doc.text(`Halaman ${pageNum}`, W - MR, H - 6, { align: 'right' });
+    }
+    function checkNewPage(needed = 20) {
+      if (y + needed > H - 16) {
+        addFooter();
+        doc.addPage();
+        pageNum++;
+        y = MT;
+        return true;
+      }
+      return false;
+    }
+
+    // ══════════════════════════════
+    // HEADER
+    // ══════════════════════════════
+    // Blue header bar
+    setColor(BLUE);
+    doc.roundedRect(ML, y, CW, 28, 3, 3, 'F');
+    setFont(16, 'bold', WHITE);
+    doc.text('LAPORAN INSPEKSI BANGUNAN', W / 2, y + 10, { align: 'center' });
+    setFont(9, 'normal', [200, 215, 235]);
+    doc.text('Properti Residential – Visual Inspection Report', W / 2, y + 18, { align: 'center' });
+    y += 33;
+
+    // Property info table
+    const p = s.properti;
+    const infoRows = [
+      ['Customer',       p.customer || '-',  'Tanggal Inspeksi', p.tanggal || '-'],
+      ['Lokasi',         p.lokasi || '-',    'Waktu Inspeksi',   p.waktu || '-'],
+      ['Metode',         p.metode || '-',    'Inspektor',        p.inspektor || '-'],
+    ];
+    const colW = [22, 64, 30, 64];
+    infoRows.forEach((row, ri) => {
+      const bg = ri % 2 === 0 ? BLUE_L : WHITE;
+      setColor(bg);
+      doc.rect(ML, y, CW, 7, 'F');
+      setFont(8, 'bold', BLUE);
+      doc.text(row[0], ML + 2, y + 5);
+      setFont(8, 'normal', DARK);
+      doc.text(': ' + row[1], ML + colW[0], y + 5);
+      setFont(8, 'bold', BLUE);
+      doc.text(row[2], ML + colW[0] + colW[1], y + 5);
+      setFont(8, 'normal', DARK);
+      doc.text(': ' + row[3], ML + colW[0] + colW[1] + colW[2], y + 5);
+      doc.setDrawColor(...GRAY_M);
+      doc.rect(ML, y, CW, 7, 'S');
+      y += 7;
+    });
+    y += 6;
+
+    // ══════════════════════════════
+    // SUMMARY
+    // ══════════════════════════════
+    const allItems = s.sections.flatMap(sec => sec.items);
+    const total  = allItems.length;
+    const nBaik  = allItems.filter(i => i.status === 'baik').length;
+    const nPerlu = allItems.filter(i => i.status === 'perlu_perbaikan').length;
+    const nUrgent= allItems.filter(i => i.status === 'urgent').length;
+
+    setFont(10, 'bold', BLUE);
+    doc.text('RINGKASAN TEMUAN', ML, y + 5);
+    y += 8;
+
+    const sumBoxes = [
+      { label: 'Total Titik', val: total,   bg: BLUE_L,   fg: BLUE   },
+      { label: 'Kondisi Baik',val: nBaik,   bg: GREEN_L,  fg: GREEN  },
+      { label: 'Perlu Perbaikan', val: nPerlu, bg: ORANGE_L, fg: ORANGE },
+      { label: 'Urgent',      val: nUrgent, bg: RED_L,    fg: RED    },
+    ];
+    const bw = CW / 4 - 2;
+    sumBoxes.forEach((b, i) => {
+      const bx = ML + i * (bw + 2.7);
+      setColor(b.bg);
+      doc.roundedRect(bx, y, bw, 16, 2, 2, 'F');
+      setFont(18, 'bold', b.fg);
+      doc.text(String(b.val), bx + bw / 2, y + 9, { align: 'center' });
+      setFont(7, 'normal', b.fg);
+      doc.text(b.label, bx + bw / 2, y + 14, { align: 'center' });
+    });
+    y += 22;
+
+    // Divider
+    doc.setDrawColor(...GRAY_M);
+    doc.line(ML, y, W - MR, y);
+    y += 5;
+
+    // ══════════════════════════════
+    // ITEMS
+    // ══════════════════════════════
+    let currentSection = '';
+    let itemNo = 1;
+
+    for (const sec of s.sections) {
+      // Section header
+      if (sec.name !== currentSection) {
+        checkNewPage(12);
+        currentSection = sec.name;
+        setColor(BLUE);
+        doc.rect(ML, y, CW, 8, 'F');
+        setFont(9, 'bold', WHITE);
+        doc.text(sec.name.toUpperCase(), ML + 4, y + 5.5);
+        y += 10;
+      }
+
+      for (const item of sec.items) {
+        // Estimate row height
+        const hasFoto = !!item.foto;
+        const fotoH   = hasFoto ? 36 : 0;
+        const descLines = doc.splitTextToSize(item.deskripsi || '-', 110);
+        const textH = Math.max(24, 6 + descLines.length * 4.5 + 8);
+        const rowH  = Math.max(textH, fotoH + 8);
+
+        checkNewPage(rowH + 4);
+
+        // Row background
+        const rowBg = itemNo % 2 === 0 ? GRAY_L : WHITE;
+        setColor(rowBg);
+        doc.rect(ML, y, CW, rowH, 'F');
+        doc.setDrawColor(...GRAY_M);
+        doc.rect(ML, y, CW, rowH, 'S');
+
+        // Item number
+        setColor(BLUE_L);
+        doc.roundedRect(ML + 1, y + 1, 8, 8, 1.5, 1.5, 'F');
+        setFont(7, 'bold', BLUE);
+        doc.text(String(itemNo), ML + 5, y + 6.5, { align: 'center' });
+
+        // Titik inspeksi
+        setFont(8, 'bold', DARK);
+        doc.text(item.titik || '-', ML + 11, y + 6);
+
+        // Status badge
+        const statusMap = {
+          baik:            { bg: GREEN,  label: '✓ BAIK' },
+          perlu_perbaikan: { bg: ORANGE, label: '⚠ PERLU PERBAIKAN' },
+          urgent:          { bg: RED,    label: '✕ URGENT' },
+        };
+        const st = statusMap[item.status] || statusMap.perlu_perbaikan;
+        setFont(6, 'bold', WHITE);
+        setColor(st.bg);
+        const stW = doc.getTextWidth(st.label) + 4;
+        doc.roundedRect(W - MR - stW - 1, y + 1, stW, 6, 1, 1, 'F');
+        doc.text(st.label, W - MR - stW / 2 - 1, y + 5.3, { align: 'center' });
+
+        // Description
+        setFont(8, 'normal', DARK);
+        const dLines = doc.splitTextToSize(item.deskripsi || '-', hasFoto ? 105 : 175);
+        dLines.forEach((line, li) => {
+          doc.text(line, ML + 11, y + 13 + li * 4.5);
+        });
+
+        // Foto
+        if (hasFoto) {
+          try {
+            const imgX = W - MR - 38;
+            const imgY = y + 2;
+            doc.addImage(item.foto, 'JPEG', imgX, imgY, 36, 32);
+            doc.setDrawColor(...GRAY_M);
+            doc.rect(imgX, imgY, 36, 32, 'S');
+          } catch (e) { /* skip bad image */ }
+        }
+
+        y += rowH + 1;
+        itemNo++;
+      }
+      y += 3;
+    }
+
+    // ══════════════════════════════
+    // SIGNATURE PAGE
+    // ══════════════════════════════
+    checkNewPage(60);
+    y += 10;
+    setFont(12, 'bold', BLUE);
+    doc.text('PERNYATAAN INSPEKTOR', W / 2, y, { align: 'center' });
+    y += 8;
+    setFont(8, 'normal', DARK);
+    const disclaimer = 'Laporan ini dibuat berdasarkan hasil inspeksi visual yang dilakukan pada tanggal tersebut di atas. Temuan yang tercantum merupakan kondisi properti pada saat inspeksi dilakukan.';
+    const dLines = doc.splitTextToSize(disclaimer, CW);
+    dLines.forEach(l => { doc.text(l, W / 2, y, { align: 'center' }); y += 5; });
+    y += 20;
+
+    // Signature boxes
+    const sigW = 70;
+    const sig1X = ML + 10;
+    const sig2X = W - MR - sigW - 10;
+    [sig1X, sig2X].forEach(sx => {
+      doc.setDrawColor(...DARK);
+      doc.line(sx, y, sx + sigW, y);
+    });
+    setFont(8, 'normal', DARK);
+    doc.text('( ' + (p.customer || '_______________') + ' )', sig1X + sigW / 2, y + 5, { align: 'center' });
+    doc.text('( ' + (p.inspektor || '_______________') + ' )', sig2X + sigW / 2, y + 5, { align: 'center' });
+    setFont(8, 'bold', GRAY_M);
+    doc.text('Pemesan', sig1X + sigW / 2, y + 10, { align: 'center' });
+    doc.text('Inspektor', sig2X + sigW / 2, y + 10, { align: 'center' });
+
+    addFooter();
+
+    // ══════════════════════════════
+    // SAVE / SHARE
+    // ══════════════════════════════
+    const filename = `Laporan_${(p.customer || 'Inspeksi').replace(/\s+/g,'_')}_${p.tanggal || 'draft'}.pdf`;
+    const pdfBlob  = doc.output('blob');
+
+    // Try Web Share API first (mobile native share → WhatsApp dll)
+    if (navigator.share && navigator.canShare) {
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        showToast('PDF siap dikirim ✓');
+        return;
+      }
+    }
+
+    // Fallback: download
+    const url = URL.createObjectURL(pdfBlob);
+    const a   = document.createElement('a');
+    a.href    = url;
+    a.download= filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('PDF didownload ✓');
+
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal buat PDF: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// OVERLAY
+// ═══════════════════════════════════════════════════
+
+function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+// ═══════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+
+// Set today's date as default
+document.getElementById('f-tanggal').value = new Date().toISOString().split('T')[0];
+document.getElementById('f-waktu').value   = new Date().toTimeString().slice(0,5);
+
+renderHome();
+</script>
+</body>
+</html>
